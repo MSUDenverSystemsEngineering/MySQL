@@ -118,7 +118,13 @@ Try {
 		Show-InstallationProgress
 
 		## <Perform Pre-Installation tasks here>
-
+		If (Test-Path -Path "$envProgramFilesX86\MySQL\MySQL Installer for Windows\MySQLInstallerConsole.exe" -PathType 'Leaf') {
+			# Remove any detected Oracle MySQL applications in case we can't remove via the MySQL Installer
+			$exitCode = Remove-MSIApplications -Name 'MySQL' -FilterApplication (,('Publisher', 'Oracle', 'RegEx')) -PassThru
+			If (($exitCode.ExitCode -ne "0") -and ($mainExitCode -ne "3010")) { $mainExitCode = $exitCode.ExitCode }
+			Remove-File -Path "$envProgramData\MySQL\*" -Recurse
+			Remove-Folder -Path "$envProgramData\MySQL" -ContinueOnError $True
+		}
 
 		##*===============================================
 		##* INSTALLATION
@@ -136,8 +142,8 @@ Try {
 		If (($exitCode.ExitCode -ne "0") -and ($mainExitCode -ne "3010")) { $mainExitCode = $exitCode.ExitCode }
 		# Silently remove any existing MySQL Community Edition products
     Execute-Process -Path "$envProgramFilesX86\MySQL\MySQL Installer for Windows\MySQLInstallerConsole.exe" -Parameters 'community remove * -silent' -WindowStyle 'Hidden' -WaitForMsiExec
-
-		Execute-Process -Path "$envProgramFilesX86\MySQL\MySQL Installer for Windows\MySQLInstallerConsole.exe" -Parameters 'community install -type=Developer -silent' -WindowStyle 'Hidden' -WaitForMsiExec
+		# Complete a full MySQL install
+		Execute-Process -Path "$envProgramFilesX86\MySQL\MySQL Installer for Windows\MySQLInstallerConsole.exe" -Parameters 'community install -type=Full -silent' -WindowStyle 'Hidden' -WaitForMsiExec
 
 		##*===============================================
 		##* POST-INSTALLATION
@@ -149,12 +155,20 @@ Try {
 		Execute-Process -Path "$exeSchTasks" -Parameters "/Delete /TN \MySQL\Installer\ManifestUpdate /F" -ContinueOnError $true
 		# Remove the installer interface from the Start Menu
 		Remove-Folder -Path "$envCommonStartMenuPrograms\MySQL\MySQL Installer - Community" -ContinueOnError $true
-		Execute-Process -Path "$envProgramFilesX86\MySQL\MySQL Installer for Windows\MySQLInstallerConsole.exe" -Parameters 'community remove notifier -silent' -WindowStyle 'Hidden' -WaitForMsiExec
-		Execute-Process -Path "$envProgramFiles\MySQL\MySQL Server 5.7\bin\mysqld.exe" -Parameters '--install' -WindowStyle 'Hidden' -WaitForMsiExec
-		Execute-Process -Path "$envProgramFilesX86\MySQL\MySQL Installer for Windows\MySQLInstallerConsole.exe" -Parameters 'community modify server:+documentation -silent' -WindowStyle 'Hidden' -WaitForMsiExec
-		Execute-Process -Path "$envProgramFilesX86\MySQL\MySQL Installer for Windows\MySQLInstallerConsole.exe" -Parameters 'community configure server:passwd=sesame -silent' -WindowStyle 'Hidden' -WaitForMsiExec
-		Execute-Process -Path "$envProgramFilesX86\MySQL\MySQL Installer for Windows\MySQLInstallerConsole.exe" -Parameters 'community configure examples:username=root;password=sesame -silent' -WindowStyle 'Hidden' -WaitForMsiExec
+		# Remove the MySQL Notifier from the Notification Area
+		Execute-Process -Path "$envProgramFilesX86\MySQL\MySQL Installer for Windows\MySQLInstallerConsole.exe" -Parameters 'community remove notifier -silent' -WindowStyle 'Hidden' -WaitForMsiExec -IgnoreExitCodes '1'
+		# Install the MySQL service
+		Execute-Process -Path "$envProgramFiles\MySQL\MySQL Server 8.0\bin\mysqld.exe" -Parameters '--install' -WindowStyle 'Hidden' -WaitForMsiExec
+		# Add MySQL Server documentation
+		Execute-Process -Path "$envProgramFilesX86\MySQL\MySQL Installer for Windows\MySQLInstallerConsole.exe" -Parameters 'community modify server:+documentation -silent' -WindowStyle 'Hidden' -WaitForMsiExec -IgnoreExitCodes '1'
+		# Configure the root user
+		Execute-Process -Path "$envProgramFilesX86\MySQL\MySQL Installer for Windows\MySQLInstallerConsole.exe" -Parameters 'community configure server:passwd=sesame -silent' -WindowStyle 'Hidden' -WaitForMsiExec -IgnoreExitCodes '1'
+		# Configure example files with the root user account
+		Execute-Process -Path "$envProgramFilesX86\MySQL\MySQL Installer for Windows\MySQLInstallerConsole.exe" -Parameters 'community configure examples:username=root;password=sesame -silent' -WindowStyle 'Hidden' -WaitForMsiExec -IgnoreExitCodes '1'
 
+		# Remove extra Start Menu items
+		Remove-File -Path "$envCommonStartMenuPrograms\MySQL\Uninstall MySQL Shell 1.0.10.lnk"
+		Remove-File -Path "$envCommonStartMenuPrograms\MySQL\MySQL Workbench.X 6.3 CE.lnk"
 		## Display a message at the end of the install
 		If (-not $useDefaultMsi) {}
 	}
@@ -186,9 +200,10 @@ Try {
 		}
 
 		# <Perform Uninstallation tasks here>
-		Execute-Process -Path "$envProgramFilesX86\MySQL\MySQL Installer for Windows\MySQLInstallerConsole.exe" -Parameters 'community remove * -silent' -WindowStyle 'Hidden' -WaitForMsiExec
-		$exitCode = Execute-MSI -Action 'Uninstall' -Path 'mysql-installer-community-5.7.20.0.msi' -PassThru
+		$exitCode = Remove-MSIApplications -Name 'MySQL' -FilterApplication @(,,@('Publisher', 'Oracle', 'RegEx')) -PassThru
 		If (($exitCode.ExitCode -ne "0") -and ($mainExitCode -ne "3010")) { $mainExitCode = $exitCode.ExitCode }
+		Remove-File -Path "$envProgramData\MySQL\*" -Recurse
+		Remove-Folder -Path "$envProgramData\MySQL"
 
 		##*===============================================
 		##* POST-UNINSTALLATION
@@ -218,8 +233,8 @@ Catch {
 # SIG # Begin signature block
 # MIIU4wYJKoZIhvcNAQcCoIIU1DCCFNACAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCAgl5vvN4EW1H5D
-# ec9qu2v0sXdoNV8KlKdHZAvicsUG5qCCD4cwggQUMIIC/KADAgECAgsEAAAAAAEv
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCDiybk1+SX6FKbX
+# 4GPqVW+aLa0iglf5IjGXw+NzWRw3UKCCD4cwggQUMIIC/KADAgECAgsEAAAAAAEv
 # TuFS1zANBgkqhkiG9w0BAQUFADBXMQswCQYDVQQGEwJCRTEZMBcGA1UEChMQR2xv
 # YmFsU2lnbiBudi1zYTEQMA4GA1UECxMHUm9vdCBDQTEbMBkGA1UEAxMSR2xvYmFs
 # U2lnbiBSb290IENBMB4XDTExMDQxMzEwMDAwMFoXDTI4MDEyODEyMDAwMFowUjEL
@@ -306,26 +321,26 @@ Catch {
 # FgNlZHUxGTAXBgoJkiaJk/IsZAEZFgltc3VkZW52ZXIxFTATBgoJkiaJk/IsZAEZ
 # FgV3aW5hZDEZMBcGA1UEAxMQd2luYWQtVk1XQ0EwMS1DQQITfwAAACITuo77mvOv
 # 9AABAAAAIjANBglghkgBZQMEAgEFAKBmMBgGCisGAQQBgjcCAQwxCjAIoAKAAKEC
-# gAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwLwYJKoZIhvcNAQkEMSIEIGJi
-# NRDTuAl+MTCE/krgDr/xiTQnyxxhYCf1cOaWcTaFMA0GCSqGSIb3DQEBAQUABIIB
-# AHewwvu4racbcmMI5kw4PEs1R6EnPs5NVfm5oU4TYaY7sKECb/3S/W5GTjhy2/g/
-# 0U6FzcMnVgihS23pGHRUttEbPnfoPLMQHYk5rwV0pAs4Y94vC6oIBcE5GihA1WXh
-# X/tZ9cmJfl5adSvttxHYewtdVvSmQ558RnDqypO5cvdZNRYPj9VAZv+ZT+BuXPQu
-# RKp+nE2LinQ3D296WWxuL5KJkxeuyoz6uQU1zjXXNGX3iblu1uuF4l+6t7hwQUeD
-# VxXR0lTGu8W6zaHM7sH7SOMhq5ZHXIBCmGGMKNfZBhdMOVUk6LV+IugBz+A1MeQP
-# 9j9Fa+u+KYcLqwWx1WXaa+ahggKiMIICngYJKoZIhvcNAQkGMYICjzCCAosCAQEw
+# gAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwLwYJKoZIhvcNAQkEMSIEILqX
+# QMlpQBkS9WbA/PdDyfTUZ7ajxrFgl1eiE5JzIcMuMA0GCSqGSIb3DQEBAQUABIIB
+# AD/QhHPQ2aQ0WZL7GaW6Zd/sZXbQ6UWIRPI5CKMFHvz7A4ZHgbaEBPTG7GirbI0b
+# qS6ITxbbsdQP2bi3nZQ0QaOkxhf2QqE24kEiuhcpMfcDJ8s6fvljFrpBPYq91EFi
+# 1Z1rMYJ5FUhF7Xs19BfyrCbmxXn1ausnUSDfKHd0oQ6QQSpLd80c26sQwEzm79MX
+# FtjF+4ewHHpxTKc29iMcgJ6z2s+ExtBEHgrJeDV+75o4dcOxqfS5R/2jnIRouFam
+# fDfO+VWYequ32os6tkn7Rlcuv/VycXEq2Q68yP8X6FEeB5YB/xi3KrmnlX7caR3v
+# WbgA/i1x61cn3wKY1rkjQXihggKiMIICngYJKoZIhvcNAQkGMYICjzCCAosCAQEw
 # aDBSMQswCQYDVQQGEwJCRTEZMBcGA1UEChMQR2xvYmFsU2lnbiBudi1zYTEoMCYG
 # A1UEAxMfR2xvYmFsU2lnbiBUaW1lc3RhbXBpbmcgQ0EgLSBHMgISESHWmadklz7x
 # +EJ+6RnMU0EUMAkGBSsOAwIaBQCggf0wGAYJKoZIhvcNAQkDMQsGCSqGSIb3DQEH
-# ATAcBgkqhkiG9w0BCQUxDxcNMTgwMTE1MTgwMjA1WjAjBgkqhkiG9w0BCQQxFgQU
-# cj9DhufMbcJmLuKaglKrhqU+ujkwgZ0GCyqGSIb3DQEJEAIMMYGNMIGKMIGHMIGE
+# ATAcBgkqhkiG9w0BCQUxDxcNMTgwMTE2MTUyMDMxWjAjBgkqhkiG9w0BCQQxFgQU
+# PPG0imGJavhSGV0QnzAvofvbeEcwgZ0GCyqGSIb3DQEJEAIMMYGNMIGKMIGHMIGE
 # BBRjuC+rYfWDkJaVBQsAJJxQKTPseTBsMFakVDBSMQswCQYDVQQGEwJCRTEZMBcG
 # A1UEChMQR2xvYmFsU2lnbiBudi1zYTEoMCYGA1UEAxMfR2xvYmFsU2lnbiBUaW1l
 # c3RhbXBpbmcgQ0EgLSBHMgISESHWmadklz7x+EJ+6RnMU0EUMA0GCSqGSIb3DQEB
-# AQUABIIBAEMGRrHBep0uZKWLlMutBotlo0XVHpFNMsGgWNEu9YOHtUTvOJUYWDmu
-# oOLgvTbB7ANGWSHllLEDneBahcSkoaZhptW9qzJEEpQlKUPjUNflnxJkTqBAlncU
-# XFnVc+f9WCpEl6jWlNDmTplegwIF3ZDH8YBzmy7Q1GqNnOb4mLyQd42msr+XkU7o
-# UKlICzlWymqJJG/Mpa4s6V2o03OEBcAJPS4hqoDqHaQJje9BvhzKAup5rshMtr4O
-# htje+A/Ay8EiXjHJ4/cXiKynPMhBELSE1W5kHDM4MsxkxPOWQf+s60UglE9j+9tI
-# e0mjIcwrHWxvWh1lEPggrfESTSANy/U=
+# AQUABIIBAFHYZrUKylXjsvfz2ztZNwZ9yEOGHRTV8ApskQMxiDCtm4Kgbj/nsKhu
+# IurqiV5TwyUdnCxMQWWEv1RxjKCOmzUSySCHvDCQSHb8+YSxaQbP+Tn6D7htUc4i
+# sRXVtsAvehDDjCcEpoxmidL/nfBON4yYmWjSpD84u2K8H39LJ12rVkiYmTzdhI0L
+# tsYbsuX9e0zAfPQnCztyCYVOdXDltD7xYVPBQ5mbelVSNcRDWehNSaydE5T0PgCV
+# ux+4pIBIcNG6BS5gLAMOytTvhR0NSVAAr3oYUaapUqWZ++baga4VOZ6l/Z/gS62t
+# gR8Dw9VoY2tSjQwXYE8pAWxVHjrpwj4=
 # SIG # End signature block
