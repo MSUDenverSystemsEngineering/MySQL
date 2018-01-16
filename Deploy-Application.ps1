@@ -58,12 +58,12 @@ Try {
 	## Variables: Application
 	[string]$appVendor = 'Oracle'
 	[string]$appName = 'MySQL Community Edition'
-	[string]$appVersion = '5.7.20'
+	[string]$appVersion = '8.0.2'
 	[string]$appArch = 'x86'
 	[string]$appLang = 'EN'
 	[string]$appRevision = '01'
-	[string]$appScriptVersion = '1.2.0'
-	[string]$appScriptDate = '01/15/2017'
+	[string]$appScriptVersion = '1.2.1'
+	[string]$appScriptDate = '01/16/2017'
 	[string]$appScriptAuthor = 'Jordan Hamilton'
 	##*===============================================
 	## Variables: Install Titles (Only set here to override defaults set by the toolkit)
@@ -138,7 +138,7 @@ Try {
 		}
 
 		## <Perform Installation tasks here>
-		$exitCode = Execute-MSI -Action 'Install' -Path 'mysql-installer-community-5.7.20.0.msi' -Parameters '/qn' -PassThru
+		$exitCode = Execute-MSI -Action 'Install' -Path 'mysql-installer-community-5.7.21.0.msi' -Parameters '/qn' -PassThru
 		If (($exitCode.ExitCode -ne "0") -and ($mainExitCode -ne "3010")) { $mainExitCode = $exitCode.ExitCode }
 		# Silently remove any existing MySQL Community Edition products
     Execute-Process -Path "$envProgramFilesX86\MySQL\MySQL Installer for Windows\MySQLInstallerConsole.exe" -Parameters 'community remove * -silent' -WindowStyle 'Hidden' -WaitForMsiExec
@@ -167,8 +167,8 @@ Try {
 		Execute-Process -Path "$envProgramFilesX86\MySQL\MySQL Installer for Windows\MySQLInstallerConsole.exe" -Parameters 'community configure examples:username=root;password=sesame -silent' -WindowStyle 'Hidden' -WaitForMsiExec -IgnoreExitCodes '1'
 
 		# Remove extra Start Menu items
-		Remove-File -Path "$envCommonStartMenuPrograms\MySQL\Uninstall MySQL Shell 1.0.10.lnk"
-		Remove-File -Path "$envCommonStartMenuPrograms\MySQL\MySQL Workbench.X 6.3 CE.lnk"
+		Remove-File -Path "$envCommonStartMenuPrograms\MySQL\Uninstall MySQL Shell *" -ContinueOnError $True
+		Remove-File -Path "$envCommonStartMenuPrograms\MySQL\MySQL Workbench.X*" -ContinueOnError $True
 		## Display a message at the end of the install
 		If (-not $useDefaultMsi) {}
 	}
@@ -233,8 +233,8 @@ Catch {
 # SIG # Begin signature block
 # MIIU4wYJKoZIhvcNAQcCoIIU1DCCFNACAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCDiybk1+SX6FKbX
-# 4GPqVW+aLa0iglf5IjGXw+NzWRw3UKCCD4cwggQUMIIC/KADAgECAgsEAAAAAAEv
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCDFYp0CJLAFrqu4
+# 6Dc6RQ4mWPU0EgYbg/efB7iuYQTbsqCCD4cwggQUMIIC/KADAgECAgsEAAAAAAEv
 # TuFS1zANBgkqhkiG9w0BAQUFADBXMQswCQYDVQQGEwJCRTEZMBcGA1UEChMQR2xv
 # YmFsU2lnbiBudi1zYTEQMA4GA1UECxMHUm9vdCBDQTEbMBkGA1UEAxMSR2xvYmFs
 # U2lnbiBSb290IENBMB4XDTExMDQxMzEwMDAwMFoXDTI4MDEyODEyMDAwMFowUjEL
@@ -321,26 +321,26 @@ Catch {
 # FgNlZHUxGTAXBgoJkiaJk/IsZAEZFgltc3VkZW52ZXIxFTATBgoJkiaJk/IsZAEZ
 # FgV3aW5hZDEZMBcGA1UEAxMQd2luYWQtVk1XQ0EwMS1DQQITfwAAACITuo77mvOv
 # 9AABAAAAIjANBglghkgBZQMEAgEFAKBmMBgGCisGAQQBgjcCAQwxCjAIoAKAAKEC
-# gAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwLwYJKoZIhvcNAQkEMSIEILqX
-# QMlpQBkS9WbA/PdDyfTUZ7ajxrFgl1eiE5JzIcMuMA0GCSqGSIb3DQEBAQUABIIB
-# AD/QhHPQ2aQ0WZL7GaW6Zd/sZXbQ6UWIRPI5CKMFHvz7A4ZHgbaEBPTG7GirbI0b
-# qS6ITxbbsdQP2bi3nZQ0QaOkxhf2QqE24kEiuhcpMfcDJ8s6fvljFrpBPYq91EFi
-# 1Z1rMYJ5FUhF7Xs19BfyrCbmxXn1ausnUSDfKHd0oQ6QQSpLd80c26sQwEzm79MX
-# FtjF+4ewHHpxTKc29iMcgJ6z2s+ExtBEHgrJeDV+75o4dcOxqfS5R/2jnIRouFam
-# fDfO+VWYequ32os6tkn7Rlcuv/VycXEq2Q68yP8X6FEeB5YB/xi3KrmnlX7caR3v
-# WbgA/i1x61cn3wKY1rkjQXihggKiMIICngYJKoZIhvcNAQkGMYICjzCCAosCAQEw
+# gAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwLwYJKoZIhvcNAQkEMSIEIMBq
+# ANmmZ6pfCx6JBa0DQ6Q73wdadHqC1GQtj7YtUIQCMA0GCSqGSIb3DQEBAQUABIIB
+# AHEEmoglTIwabTK5Xrw+hA+9zmHINSA5ICm8XEkprAtnZsGBlik7MXouzA+mb70M
+# oy57iD8pSYIfaCiu8CW3nVUhNWtcFLNV9BrUe58j/n/ahxQW2T6LR82mdfiCzMxq
+# Tk0JenQ+2QU4mO8O+A9nbHzTkWOZfLbo+vKZNaOM+EzsD2ZZjKzB46Ng2ZPYWvdB
+# Kp+JNqKwhc9/x1L6lBEU0jMmo/kHYKOmrJICgMaucFpnzaN8g7pT0eHfDbOrtndF
+# q+ybqPhmCgwnYG9rkV1AuDHk3MtIFzz+dtJij+IrjSv1yBJsYGnbZHm31CCV2auk
+# DfykovNd3LmCkqO2HV6sARWhggKiMIICngYJKoZIhvcNAQkGMYICjzCCAosCAQEw
 # aDBSMQswCQYDVQQGEwJCRTEZMBcGA1UEChMQR2xvYmFsU2lnbiBudi1zYTEoMCYG
 # A1UEAxMfR2xvYmFsU2lnbiBUaW1lc3RhbXBpbmcgQ0EgLSBHMgISESHWmadklz7x
 # +EJ+6RnMU0EUMAkGBSsOAwIaBQCggf0wGAYJKoZIhvcNAQkDMQsGCSqGSIb3DQEH
-# ATAcBgkqhkiG9w0BCQUxDxcNMTgwMTE2MTUyMDMxWjAjBgkqhkiG9w0BCQQxFgQU
-# PPG0imGJavhSGV0QnzAvofvbeEcwgZ0GCyqGSIb3DQEJEAIMMYGNMIGKMIGHMIGE
+# ATAcBgkqhkiG9w0BCQUxDxcNMTgwMTE2MTUzODA2WjAjBgkqhkiG9w0BCQQxFgQU
+# d85YPKIjjFcYt0onQZGRubN7LN8wgZ0GCyqGSIb3DQEJEAIMMYGNMIGKMIGHMIGE
 # BBRjuC+rYfWDkJaVBQsAJJxQKTPseTBsMFakVDBSMQswCQYDVQQGEwJCRTEZMBcG
 # A1UEChMQR2xvYmFsU2lnbiBudi1zYTEoMCYGA1UEAxMfR2xvYmFsU2lnbiBUaW1l
 # c3RhbXBpbmcgQ0EgLSBHMgISESHWmadklz7x+EJ+6RnMU0EUMA0GCSqGSIb3DQEB
-# AQUABIIBAFHYZrUKylXjsvfz2ztZNwZ9yEOGHRTV8ApskQMxiDCtm4Kgbj/nsKhu
-# IurqiV5TwyUdnCxMQWWEv1RxjKCOmzUSySCHvDCQSHb8+YSxaQbP+Tn6D7htUc4i
-# sRXVtsAvehDDjCcEpoxmidL/nfBON4yYmWjSpD84u2K8H39LJ12rVkiYmTzdhI0L
-# tsYbsuX9e0zAfPQnCztyCYVOdXDltD7xYVPBQ5mbelVSNcRDWehNSaydE5T0PgCV
-# ux+4pIBIcNG6BS5gLAMOytTvhR0NSVAAr3oYUaapUqWZ++baga4VOZ6l/Z/gS62t
-# gR8Dw9VoY2tSjQwXYE8pAWxVHjrpwj4=
+# AQUABIIBAJcAeXWKumLkXhsVsDahtzhNlSGTdQYwLVRIdKQ/oDSjUXtcR4pTQsAm
+# O1SCNaQhB2VMbny4qYb0sq7guYTBapXn98hSX9oybT1oWQueBXpRrQIAH46SD2Ou
+# bAVjlfEXzi1cFeWar+M6jIhtfd45yM+mYH1skIKKYm5OVuoE0zB3Iic6+6WQV2I2
+# Xnw6NuwPEc166krv8sPXmKIoPmMM8Xn1u1y9/IX2NHjhBHJUsnHJTKPZ8QdGajOA
+# RhNWWUJDmGuoRI+sN+qrh34K/LIoGJqkCrRfLYzga6kGpsvlLkuTYcDX5D8L7ePQ
+# YKkEgtdt0MKR40RrMqfeazas8UEjyDI=
 # SIG # End signature block
