@@ -193,7 +193,7 @@ Try {
 		[string]$installPhase = 'Pre-Uninstallation'
 
 		## Show Welcome Message, close Internet Explorer with a 60 second countdown before automatically closing
-		Show-InstallationWelcome -CloseApps 'MySQLd MySQL' -CloseAppsCountdown 60
+		Show-InstallationWelcome -CloseApps 'MySQL' -CloseAppsCountdown 60
 
 		## Show Progress Message (with the default message)
 		Show-InstallationProgress
@@ -213,21 +213,20 @@ Try {
 		}
 
 		# <Perform Uninstallation tasks here>
-		Execute-Process -Path "$envProgramFilesX86\MySQL\MySQL Installer for Windows\MySQLInstallerConsole.exe" -Parameters 'community remove * -silent' -WindowStyle 'Hidden' -WaitForMsiExec
-		Remove-File -Path "$envProgramFiles\MySQL\*" -Recurse
-		Remove-Folder -Path "$envProgramFiles\MySQL"
-		Remove-File -Path "$envProgramFilesx86\MySQL\*" -Recurse
-		Remove-Folder -Path "$envProgramFilesx86\MySQL"
-		Remove-File -Path "$envProgramData\MySQL\*" -Recurse
-		Remove-File -Path "$envProgramData\MySQL"
-
+		If (Test-Path -Path "$envProgramFilesX86\MySQL\MySQL Installer for Windows\MySQLInstallerConsole.exe" -PathType 'Leaf') {
+			# Remove any detected Oracle MySQL applications in case we can't remove via the MySQL Installer
+			$exitCode = Remove-MSIApplications -Name 'MySQL' -FilterApplication (,('Publisher', 'Oracle', 'RegEx')) -PassThru
+			If (($exitCode.ExitCode -ne "0") -and ($mainExitCode -ne "3010")) { $mainExitCode = $exitCode.ExitCode }
+			Remove-File -Path "$envProgramData\MySQL\*" -Recurse
+			Remove-Folder -Path "$envProgramData\MySQL" -ContinueOnError $True
+		}
 		##*===============================================
 		##* POST-UNINSTALLATION
 		##*===============================================
 		[string]$installPhase = 'Post-Uninstallation'
 
 		## <Perform Post-Uninstallation tasks here>
-
+		Remove-Folder -Path "$envProgramFiles\MySQL" -ContinueOnError $True
 	}
 	ElseIf ($deploymentType -ieq 'Repair')
 	{
@@ -280,8 +279,8 @@ Catch {
 # SIG # Begin signature block
 # MIImVgYJKoZIhvcNAQcCoIImRzCCJkMCAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCDfABVqz6S8RR9A
-# 3ZhRo+JCC/OUetSGLPYM2XUpbQVItaCCH8EwggVvMIIEV6ADAgECAhBI/JO0YFWU
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCALewmp89y8YWUa
+# eYrdTo8iqHC+r1L6SskbjyUHpFv1lqCCH8EwggVvMIIEV6ADAgECAhBI/JO0YFWU
 # jTanyYqJ1pQWMA0GCSqGSIb3DQEBDAUAMHsxCzAJBgNVBAYTAkdCMRswGQYDVQQI
 # DBJHcmVhdGVyIE1hbmNoZXN0ZXIxEDAOBgNVBAcMB1NhbGZvcmQxGjAYBgNVBAoM
 # EUNvbW9kbyBDQSBMaW1pdGVkMSEwHwYDVQQDDBhBQUEgQ2VydGlmaWNhdGUgU2Vy
@@ -455,32 +454,32 @@ Catch {
 # ZDErMCkGA1UEAxMiU2VjdGlnbyBQdWJsaWMgQ29kZSBTaWduaW5nIENBIFIzNgIR
 # AKVN33D73PFMVIK48rFyyjEwDQYJYIZIAWUDBAIBBQCggYQwGAYKKwYBBAGCNwIB
 # DDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEE
-# AYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAvBgkqhkiG9w0BCQQxIgQg9yTcomcJu6pT
-# yx/94YAkMqZbzU+F0jm3xxCvwpApdyQwDQYJKoZIhvcNAQEBBQAEggGAQVLuSvmV
-# +QoIIyQO1i6E68N5dhA05OLPKCvo9tkSC2M+jbSWfcB/WMDMwBHQzLXZdgZhTezI
-# 8ed7bRwEP1ro931s1ckGq5CiVO3AldXVgVGPaNOo3pmzikDqSJH+uAGX8Lzk+yxh
-# 1pm7Md/hoYpwsdq2rN/GnYopEi4lG4DlxVzDJ1WjUiosFBMiKHQ/uZBs9iELvTVP
-# 0fnGqUvW4LZcENgF1saFbC3bLSHHAzM2N1jirqIH+ZYPpZHbOm2izELAgdq/GjxC
-# tD/35oL7V6JRrUr0Dmj4+IkkjxvEZ0XiSFZaN4eCYQUj03ld4fnsyLWan47p3gOY
-# yRkJ/PkTq2NYmKq7N2QVFswbUMOR1+CzLCY2r3PsjUfsI2IHmraHfd1bRhUPpcFf
-# 2hL+aCnAoAGk4OygFB3F7XkvwLJrXavoIMFwXmYt/L1KRlTvAn+u9hOhVDMLJn7G
-# rXLQMkxy/J8FMUZt25XInmZsV+gL1P6QFKl7bR2xE+klbWVyfBx+aIpdoYIDTDCC
+# AYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAvBgkqhkiG9w0BCQQxIgQgIm8gfGAE3H9Z
+# foYe7Qn+mUryHDGJM3T+/z0o9TPckAYwDQYJKoZIhvcNAQEBBQAEggGAJBOtI2Fo
+# 5FJuicvXYEKDEaP7lPvHIdrLY+TzuzyaMWnlnTGTRa0VTLkOHR9CZ1m8OTGHYNGr
+# XYWrVq9qVSIucZXjxfBlCPbMBm6OigV5EYMMgOZDV7eMeXEVG8GB4MeynPLXzl9K
+# jA1E/6ZEV5CiG/PqQBtRQTD7wgr7to8nzoW0sStzl7NQcnXV32eTj/vbEGrMbxxS
+# I6O5JKon8eakGNMlrLlIQ7UnZbQJu2e2Ler/WnvbT2ovdDw+dpDvCsmSx70jYolU
+# Ifnh5Rj2Z2uJ6uS7mV9WrMUUTi0xQ3H9EEt5ga7YKDBR+4h1NU4tAF80yGYyzmti
+# U4yNXVO7Jp0rXG9/npvdrJN77b+Wq8WDkNR+W5ofzwfesCVTJau9mtkqE8XK3B55
+# c3fHWFuq19297R6Co9abCVrYEiNVK+MZdFCqSGRAfCbTrnNEmXgFrlTFfK509doL
+# 9qzIdyWTWlxPcRjHhZ4DrqikwWu66P8nqhqFT/95VacakoMHmI7pbp9yoYIDTDCC
 # A0gGCSqGSIb3DQEJBjGCAzkwggM1AgEBMIGSMH0xCzAJBgNVBAYTAkdCMRswGQYD
 # VQQIExJHcmVhdGVyIE1hbmNoZXN0ZXIxEDAOBgNVBAcTB1NhbGZvcmQxGDAWBgNV
 # BAoTD1NlY3RpZ28gTGltaXRlZDElMCMGA1UEAxMcU2VjdGlnbyBSU0EgVGltZSBT
 # dGFtcGluZyBDQQIRAJA5f5rSSjoT8r2RXwg4qUMwDQYJYIZIAWUDBAICBQCgeTAY
-# BgkqhkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzA0MjUx
-# NzQ1MjlaMD8GCSqGSIb3DQEJBDEyBDB0N40fDBeG/JtFTTy4YEMmSUDSNQTMMcKF
-# hqslFMahwsDUpYiWUZjgy0oOZqnpJdIwDQYJKoZIhvcNAQEBBQAEggIAXfZ1VvYg
-# Fb75K+LBWsj2qzERKFBxZuWuSIqrrpkGSEZQfydLAUw8azVXkpbZbE+zFup1Ha+P
-# aRQNP/Ete2hbDpuPpZ10twMZrtKk7MqS6777VlhP/Ykubbjkr4FhEsu1zWvPQHck
-# DiCE1UKWgQa/Nxg7+kUd4np0ZzlCrRfZPFfYU3vyIYsS9pczknEsgcrfTf97E3lS
-# ixzbi+e2qaLWBcS+A5R3joto9Yc5NGdW5p5B94MjMIwfurH4qDILmf3E3DwTxwhE
-# /gzDc8wLgFLBLVmyVxsL961KoyDEneZZTMyN30HJBVl7UfYWfVfvUpoRlMbFJzck
-# 4B9wVhJnqkZQR9CTpIe3uHOVX9zr1MEh3652TQVXN+59Guomr5crJTl31/pw+8YK
-# ABtKRMnqzdI0en0fY/HHRXbOt2cvhuI+bZrYt3c7jycUAcU7YU7rfWi87PJ7wXnx
-# RoMxcYt3tIU41B+PXFkH+PmHZ5k1qbxp6ftEet4yX/P4YCtKE28tNcjIkmNgz7ws
-# 4DH1rhVy23ed1lBLp+kQ2AuTT1twvWu+PdPOnboUOR1EoBknQt+jhkmz6hP09t2e
-# kN5L+aSnxpcoaQ/eavTSOCXb7VKrSzMeRhCSzdDIEzx3NlLH0Jqz5B68uyqOOzsI
-# L93WhQ1LhdPgsIf/4E2vllfwpYQ9aRgopyI=
+# BgkqhkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzA0MjUy
+# MTA5MDRaMD8GCSqGSIb3DQEJBDEyBDAsxz1SRXcqsgN7Fj+c3+geXpyXKO3ATMQ2
+# Tk+Uxf+1WNFnmfHeXE2bdTIa6K+JP4QwDQYJKoZIhvcNAQEBBQAEggIAJs0NTbzp
+# Mdl1I4YmLslafeGobm8/hAkX+M5iQ0NVlQ7MAZZc/jj38JP+PcS6i5DrrYZttkzj
+# ozNLQo+KnikEOOV1ZiPBLPCAn5X6ZdT6N/ttbebifFYnEj9g0sggbvy30Ew9srxA
+# ijv4xQwpVYOirO7zAjw6AwsY32ZsIDx9REjwOQal4sb+TIZtIrbM3MRf3zpqMO7f
+# aN8zxPD84lw1fSS9CSjJMA9hCWLDZ4dhjrE/uYVxftSkMfxNTStzyw2aT03Fff+/
+# hcB7ZJ2MNDmewusi5bClh+J1Inpowvh/K8KP2g7uty4/QDzne4eoNp/qDZUBWMjI
+# d0dcJpvL/SAkmpWVI5VXkB1fxAmPbZ6QxSve3DwLmDTUsSgVZdPD0JYoN58KGXM8
+# ABJV5DrN1DyCciSsNWkOh1DuouZhkPWzvZm0KkeekU0YV2bZG/b8WSmJloe79lhe
+# 3tJy5/ZkjxoooFPXrjuvIZnDqp62RFnzhpXWgtvSi5kC79nf0oT668CY2ix8UBGM
+# Ft71d9DUsJAl+q+ksTqM0AOVkH3nO+zNHu4TF8KTNwmgM9VuadEssrR7pQ8CcyMa
+# hElKQUi5w0ZcGopvHEmipppAjzHci1shpPOFLqww3pRAQPqgw4VWGmKDKPvcAGD2
+# 6mZEPuqcuav2Qozf9a66PQCw6SiR0k9fwcU=
 # SIG # End signature block
